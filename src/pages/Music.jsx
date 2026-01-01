@@ -14,7 +14,14 @@ export default function Music() {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
 
-  const categories = ["All", "NewRelease", "Classical", "Rock", "Popular", "Evergreen"];
+  const categories = [
+    "All",
+    "NewRelease",
+    "Classical",
+    "Rock",
+    "Popular",
+    "Evergreen",
+  ];
   const [activeCategory, setActiveCategory] = useState("All");
 
   useEffect(() => {
@@ -58,7 +65,8 @@ export default function Music() {
         .eq("track_id", track.id);
 
       if (error) throw error;
-      if (existing.length > 0) return alert(`${track.title} is already in ${playlist.name}`);
+      if (existing.length > 0)
+        return alert(`${track.title} is already in ${playlist.name}`);
 
       const { error: insertError } = await supabase
         .from("playlist_tracks")
@@ -73,7 +81,9 @@ export default function Music() {
 
   const handleAddToFavorite = async (track) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const user = session?.user;
       if (!user) return alert("Login required");
 
@@ -85,7 +95,9 @@ export default function Music() {
 
       if (existing.length > 0) return alert("Already in favorites");
 
-      await supabase.from("favorites").insert([{ user_id: user.id, track_id: track.id }]);
+      await supabase
+        .from("favorites")
+        .insert([{ user_id: user.id, track_id: track.id }]);
       alert("Added to favorites ❤️");
     } catch (err) {
       console.error(err);
@@ -98,52 +110,61 @@ export default function Music() {
       track.category?.toLowerCase() === activeCategory.toLowerCase()
   );
 
-  if (loading) return <p className="p-6">Loading music...</p>;
-  if (tracks.length === 0) return <p className="p-6">No music uploaded.</p>;
+  if (loading)
+    return <p className="p-6 text-white">Loading music...</p>;
+
+  if (tracks.length === 0)
+    return <p className="p-6 text-white">No music uploaded.</p>;
 
   return (
-    <div className="p-6">
-     
+    <div className="min-h-screen p-8 bg-gradient-to-br from-zinc-950 via-purple-950 to-zinc-900 text-white">
+      {/* 🎶 Header */}
+      <h1 className="text-3xl font-extrabold mb-8 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+        🎶 Explore Music
+      </h1>
 
-     <div className="flex items-center gap-3 mb-8 overflow-x-auto scrollbar-hide">
-  {/* Category Pills on the left */}
-  <div className="flex gap-3 flex-shrink-0">
-    {categories.map((cat) => (
-      <button
-        key={cat}
-        onClick={() => setActiveCategory(cat)}
-        className={`px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-300
-          ${activeCategory === cat
-            ? "bg-purple-600 text-white scale-105 shadow-lg"
-            : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"
-          }`}
-      >
-        {cat}
-      </button>
-    ))}
-  </div>
+      {/* Categories + Search */}
+      <div className="flex items-center gap-4 mb-10 overflow-x-auto scrollbar-hide">
+        {/* Category pills */}
+        <div className="flex gap-3 flex-shrink-0">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-6 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-300
+                ${
+                  activeCategory === cat
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white scale-105 shadow-lg shadow-purple-500/40"
+                    : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
+                }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
 
-  {/* Search Bar on the right */}
-  <div className="w-64 ml-auto flex-shrink-0"> {/* Fixed width and pushed to right */}
-    <SearchBar 
-      type="track"
-      onResults={(results) => {
-        setSearchResults(results);
-        setSearching(
-          results.length > 0 || (results.length === 0 && searchResults.length > 0)
-        );
-      }}
-    />
-  </div>
-</div>
+        {/* Search bar */}
+        <div className="ml-auto w-72 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-2 shadow-lg">
+          <SearchBar
+            type="track"
+            onResults={(results) => {
+              setSearchResults(results);
+              setSearching(
+                results.length > 0 ||
+                  (results.length === 0 && searchResults.length > 0)
+              );
+            }}
+          />
+        </div>
+      </div>
 
-      {/* 🎶 Music Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-      {filteredTracks.map((track) => (
+      {/* 🎧 Music Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+        {filteredTracks.map((track) => (
           <MusicCard
             key={track.id}
             track={track}
-            tracks={tracks} 
+            tracks={tracks}
             onAddToPlaylist={handleAddToPlaylist}
             onAddToFavorite={handleAddToFavorite}
           />

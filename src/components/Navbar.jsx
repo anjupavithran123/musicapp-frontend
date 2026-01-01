@@ -68,6 +68,8 @@ export default function Navbar() {
               <Link to="/" className={linkClass("/")}>Music</Link>
               <Link to="/podcasts" className={linkClass("/podcasts")}>Podcasts</Link>
               <Link to="/favorites" className={linkClass("/favorites")}>Favorites</Link>
+              <Link to="/playlists" className={linkClass("/playlists")}>Playlists</Link>
+
             </>
           )}
 

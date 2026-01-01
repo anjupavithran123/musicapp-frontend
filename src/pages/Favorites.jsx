@@ -60,32 +60,33 @@ export default function Favorites({ user }) {
   
 
   return (
-    <div className="p-6">
-      {/* ✅ Heading always visible */}
-      <h1 className="text-2xl font-bold text-black mb-6">
-        Your Favorite Songs
+    <div className="min-h-screen p-8 bg-gradient-to-br from-zinc-950 via-purple-950 to-zinc-900 text-white">
+      
+      {/* Heading */}
+      <h1 className="text-3xl font-extrabold mb-8 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+        ❤️ Your Favorite Songs
       </h1>
-
-      {loading && <p className="text-gray-400">Loading...</p>}
-
+  
+      {loading && <p className="text-white/60">Loading...</p>}
+  
       {!loading && favorites.length === 0 && (
-        <p className="text-gray-400">No favorite songs yet.</p>
+        <p className="text-white/60">No favorite songs yet.</p>
       )}
-
-{!loading && favorites.length > 0 && (
-  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-    {favorites.map((fav) => (
-      <MusicCard
-        key={fav.id}
-        track={fav.tracks}
-        isFavorite
-        menuMode="remove"
-        onRemove={() => handleRemoveFavorite(fav.track_id)} // ✅ pass track_id
-      />
-    ))}
-  </div>
-)}
-
+  
+      {!loading && favorites.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {favorites.map((fav) => (
+            <MusicCard
+              key={fav.id}
+              track={fav.tracks}
+              isFavorite
+              menuMode="remove"
+              onRemove={() => handleRemoveFavorite(fav.track_id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
+  
 }

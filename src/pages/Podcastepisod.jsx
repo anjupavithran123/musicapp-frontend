@@ -18,7 +18,7 @@ export default function UserPodcastEpisodesview() {
     if (error) {
       console.error(error);
     } else {
-      setEpisodes(data);
+      setEpisodes(data || []);
     }
 
     setLoading(false);
@@ -28,48 +28,71 @@ export default function UserPodcastEpisodesview() {
     fetchEpisodes();
   }, [podcastId]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this episode?")) return;
-
-    const { error } = await supabase
-      .from("podcast_episodes") // ✅ correct table
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      alert(error.message);
-    } else {
-      // Remove deleted episode from UI
-      setEpisodes((prev) => prev.filter((ep) => ep.id !== id));
-    }
-  };
-
-  if (loading) return <p className="p-4">Loading episodes...</p>;
+  if (loading) {
+    return (
+      <div className="min-h-screen p-8 bg-gradient-to-br from-zinc-950 via-purple-950 to-zinc-900 text-white/70">
+        Loading episodes...
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6">
-      <button className="mb-4 text-blue-600" onClick={() => navigate(-1)}>
+    <div className="min-h-screen p-8 bg-gradient-to-br from-zinc-950 via-purple-950 to-zinc-900 text-white">
+      {/* Back Button */}
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-6 inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition"
+      >
         ← Back
       </button>
 
-      <h1 className="text-2xl font-bold mb-4">Podcast Episodes</h1>
+      {/* Heading */}
+      <h1 className="text-3xl font-extrabold mb-8 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+        🎧 Podcast Episodes
+      </h1>
 
-      {episodes.length === 0 && <p>No episodes uploaded yet.</p>}
+      {episodes.length === 0 && (
+        <p className="text-white/60">No episodes uploaded yet.</p>
+      )}
 
-      {episodes.map((ep) => (
-        <div key={ep.id} className="border p-4 rounded mb-3">
-          <h2 className="font-semibold">{ep.title}</h2>
+      {/* Episodes List */}
+      <div className="space-y-6">
+        {episodes.map((ep) => (
+          <div
+            key={ep.id}
+            className="
+              relative rounded-2xl p-5
+              bg-white/10 backdrop-blur-xl
+              border border-white/10
+              shadow-xl transition
+              hover:border-purple-400
+            "
+          >
+            {/* Glow */}
+            <div className="absolute inset-0 rounded-2xl bg-purple-500/20 blur-xl opacity-0 hover:opacity-100 transition" />
 
-          <p className="text-sm text-gray-500">
-            Duration: {Math.floor(ep.duration / 60)}:
-            {(ep.duration % 60).toString().padStart(2, "0")}
-          </p>
+            <div className="relative z-10">
+              {/* Title */}
+              <h2 className="text-lg font-bold truncate">
+                {ep.title}
+              </h2>
 
-          <audio controls src={ep.audio_url} className="w-full mt-2" />
+              {/* Duration */}
+              <p className="text-sm text-white/60 mt-1">
+                ⏱ Duration: {Math.floor(ep.duration / 60)}:
+                {(ep.duration % 60).toString().padStart(2, "0")}
+              </p>
 
-         
-        </div>
-      ))}
+              {/* Audio Player */}
+              <audio
+                controls
+                src={ep.audio_url}
+                className="w-full mt-4 rounded-lg"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

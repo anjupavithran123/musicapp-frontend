@@ -13,7 +13,7 @@ export default function Playlists() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // right-click menu state
+  // Right-click menu state
   const [menu, setMenu] = useState(null); // { x, y, id }
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export default function Playlists() {
     }
   };
 
-  // right click handler
+  // Right-click handler
   const handleRightClick = (e, id) => {
     e.preventDefault();
     setMenu({ x: e.pageX, y: e.pageY, id });
@@ -71,40 +71,67 @@ export default function Playlists() {
   };
 
   return (
-    <div className="p-6" onClick={() => setMenu(null)}>
-      <h1 className="text-black text-2xl mb-4">Your Playlists</h1>
+    <div
+      className="relative min-h-screen p-8 bg-gradient-to-br from-zinc-950 via-purple-950 to-zinc-900 text-white"
+      onClick={() => setMenu(null)}
+    >
+      {/* Title */}
+      <h1 className="text-3xl font-extrabold mb-8 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+        🎵 Your Playlists
+      </h1>
 
       {/* Create Playlist */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap gap-4 mb-12">
         <input
-          className="border p-2 rounded w-64"
+          className="bg-white/10 backdrop-blur-xl border border-white/20 p-3 rounded-xl w-72 text-white placeholder-white/60
+                     focus:outline-none focus:ring-2 focus:ring-purple-500"
           placeholder="New playlist name"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
+
         <button
           onClick={createPlaylist}
           disabled={loading}
-          className="bg-purple-600 text-white px-4 rounded hover:bg-purple-700"
+          className="px-7 py-3 rounded-xl font-semibold
+                     bg-gradient-to-r from-purple-600 to-pink-600
+                     hover:scale-105 transition shadow-lg disabled:opacity-60"
         >
           {loading ? "Creating..." : "Create"}
         </button>
       </div>
 
+      {/* Empty State */}
       {playlists.length === 0 && (
-        <p className="text-zinc-400">No playlists yet</p>
+        <p className="text-white/50">No playlists yet</p>
       )}
 
-      <div className="space-y-3">
+      {/* Playlist Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {playlists.map((pl) => (
           <div
             key={pl.id}
             onClick={() => navigate(`/playlists/${pl.id}`)}
             onContextMenu={(e) => handleRightClick(e, pl.id)}
-            className="bg-zinc-900 p-4 text-white rounded-xl cursor-pointer
-                       hover:border-purple-500 border border-zinc-100 w-64"
+            className="
+              group relative cursor-pointer rounded-2xl p-6
+              bg-gradient-to-br from-purple-600/30 via-pink-500/20 to-indigo-500/30
+              backdrop-blur-xl border border-white/20
+              hover:border-purple-400 hover:scale-105
+              transition-all duration-300 shadow-xl
+            "
           >
-            {pl.name}
+            {/* Glow layer */}
+            <div className="absolute inset-0 rounded-2xl bg-purple-500/30 blur-xl opacity-0 group-hover:opacity-100 transition" />
+
+            {/* Card content */}
+            <div className="relative z-10">
+              <div className="text-4xl mb-3">🎧</div>
+              <h2 className="text-lg font-bold truncate">{pl.name}</h2>
+              <p className="text-sm text-white/60 mt-1">
+                Click to open playlist
+              </p>
+            </div>
           </div>
         ))}
       </div>
@@ -112,14 +139,14 @@ export default function Playlists() {
       {/* Right-click menu */}
       {menu && (
         <div
-          className="fixed z-50 bg-white border shadow rounded"
+          className="fixed z-50 bg-zinc-900 border border-white/20 rounded-xl shadow-xl overflow-hidden"
           style={{ top: menu.y, left: menu.x }}
         >
           <button
             onClick={() => deletePlaylist(menu.id)}
-            className="px-4 py-2 text-red-600 hover:bg-red-50 w-full text-left"
+            className="px-5 py-3 text-red-400 hover:bg-red-500/10 w-full text-left"
           >
-            🗑 Delete
+            🗑 Delete Playlist
           </button>
         </div>
       )}

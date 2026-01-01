@@ -12,16 +12,18 @@ export default function PodcastDetail() {
 
     const { data, error } = await supabase
       .from("podcasts")
-      .select(`
+      .select(
+        `
         *,
         podcast_episodes ( id )
-      `)
+      `
+      )
       .order("created_at", { ascending: false });
 
     if (error) {
       console.error(error);
     } else {
-      setPodcasts(data);
+      setPodcasts(data || []);
     }
 
     setLoading(false);
@@ -31,46 +33,85 @@ export default function PodcastDetail() {
     fetchPodcasts();
   }, []);
 
- 
+  if (loading)
+    return (
+      <p className="p-8 text-white/70 bg-gradient-to-br from-zinc-950 via-purple-950 to-zinc-900 min-h-screen">
+        Loading podcasts...
+      </p>
+    );
 
-  if (loading) return <p className="p-4">Loading...</p>;
-  if (podcasts.length === 0) return <p className="p-4">No podcasts found</p>;
+  if (podcasts.length === 0)
+    return (
+      <p className="p-8 text-white/70 bg-gradient-to-br from-zinc-950 via-purple-950 to-zinc-900 min-h-screen">
+        No podcasts found
+      </p>
+    );
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">User Podcast List</h1>
+    <div className="min-h-screen p-8 bg-gradient-to-br from-zinc-950 via-purple-950 to-zinc-900 text-white">
+      {/* Header */}
+      <h1 className="text-3xl font-extrabold mb-10 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+        🎙 User Podcast List
+      </h1>
 
-     
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Podcast Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {podcasts.map((podcast) => (
-          <div key={podcast.id} className="border p-4 rounded shadow">
-            {podcast.cover_url && (
+          <div
+            key={podcast.id}
+            className="
+              group relative rounded-2xl overflow-hidden
+              bg-white/10 backdrop-blur-xl
+              border border-white/10
+              shadow-xl transition-all duration-300
+              hover:scale-[1.02] hover:border-purple-400
+            "
+          >
+            {/* Glow */}
+            <div className="absolute inset-0 bg-purple-500/20 blur-xl opacity-0 group-hover:opacity-100 transition" />
+
+            {/* Cover */}
+            {podcast.cover_url ? (
               <img
                 src={podcast.cover_url}
                 alt={podcast.title}
-                className="w-full h-40 object-cover rounded mb-2"
+                className="relative z-10 w-full h-44 object-cover"
               />
+            ) : (
+              <div className="relative z-10 h-44 flex items-center justify-center bg-purple-500/20">
+                🎧
+              </div>
             )}
 
-            <h2 className="font-semibold text-lg">{podcast.title}</h2>
-            <p className="text-gray-600">{podcast.description}</p>
+            {/* Content */}
+            <div className="relative z-10 p-5">
+              <h2 className="text-lg font-bold truncate">
+                {podcast.title}
+              </h2>
 
-            <p className="text-sm text-gray-500 mt-1">
-              Episodes: {podcast.podcast_episodes?.length || 0}
-            </p>
+              <p className="text-sm text-white/70 mt-1 line-clamp-2">
+                {podcast.description || "No description available"}
+              </p>
 
-            <div className="flex flex-wrap gap-2 mt-3">
-            
+              <p className="text-xs text-white/50 mt-2">
+                Episodes: {podcast.podcast_episodes?.length || 0}
+              </p>
 
-            <button
-  className="bg-purple-600 text-white px-3 py-1 rounded"
-  onClick={() => navigate(`/podcasts/${podcast.id}/episodes`)}
->
-  View Episodes
-</button>
-
-              
+              {/* Actions */}
+              <div className="mt-4">
+                <button
+                  onClick={() =>
+                    navigate(`/podcasts/${podcast.id}/episodes`)
+                  }
+                  className="
+                    w-full px-4 py-2 rounded-xl font-semibold
+                    bg-gradient-to-r from-purple-600 to-pink-600
+                    hover:scale-105 transition shadow-lg
+                  "
+                >
+                  View Episodes
+                </button>
+              </div>
             </div>
           </div>
         ))}
