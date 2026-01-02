@@ -9,7 +9,6 @@ export function AudioProvider({ children }) {
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
   const sourceRef = useRef(null);
-
   const playPromiseRef = useRef(null);
   const playlistRef = useRef([]);
 
@@ -19,6 +18,9 @@ export function AudioProvider({ children }) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [session, setSession] = useState(null);
+
+  // ✅ NEW: Volume state (0 → 1)
+  const [volume, setVolume] = useState(1);
 
   /* =========================
      SAFE PLAYLIST SETTER
@@ -99,6 +101,9 @@ export function AudioProvider({ children }) {
     audio.load();
     audio.currentTime = startTime;
 
+    // ✅ Restore volume
+    audio.volume = volume;
+
     if (audioCtxRef.current.state === "suspended") {
       await audioCtxRef.current.resume();
     }
@@ -124,75 +129,83 @@ export function AudioProvider({ children }) {
         .select("last_position")
         .eq("user_id", session.user.id)
         .eq("track_id", track.id)
-        .single();
+        .maybeSingle(); // ✅ avoid 406 error
 
       if (data?.last_position) resumeTime = data.last_position;
 
       setCurrent(track);
-      await loadTrackSource(track, resumeTime);
+
+      // Load track but do NOT autoplay (user gesture required)
+      const audio = audioRef.current;
+      const { data: audioData } = supabase.storage
+        .from("audio-files")
+        .getPublicUrl(track.audio_path);
+      audio.src = audioData.publicUrl;
+      audio.currentTime = resumeTime;
+      audio.volume = volume;
+      audio.load();
+      setIsPlaying(false);
     };
 
     restore();
-  }, [session]);
+  }, [session, volume]);
 
-/* =========================
-   TIME / META / AUTO NEXT
-========================= */
-useEffect(() => {
-  const audio = audioRef.current;
+  /* =========================
+     TIME / META / AUTO NEXT
+  ========================= */
+  useEffect(() => {
+    const audio = audioRef.current;
 
-  const onTime = () => {
-    setCurrentTime(audio.currentTime);
-    localStorage.setItem("currentTime", audio.currentTime);
-  };
+    const onTime = () => {
+      setCurrentTime(audio.currentTime);
+      localStorage.setItem("currentTime", audio.currentTime);
+    };
 
-  const onMeta = () => {
-    if (Number.isFinite(audio.duration)) {
-      setDuration(audio.duration);
-    }
-  };
+    const onMeta = () => {
+      if (Number.isFinite(audio.duration)) {
+        setDuration(audio.duration);
+      }
+    };
 
-  const onEnded = async () => {
-    const list = playlistRef.current;
+    const onEnded = async () => {
+      const list = playlistRef.current;
 
-    if (!list.length || !current) {
-      setIsPlaying(false);
-      return;
-    }
-
-    const index = list.findIndex(t => t.id === current.id);
-    const nextIndex = index + 1;
-
-    if (nextIndex < list.length) {
-      const nextTrack = list[nextIndex];
-
-      setCurrent(nextTrack);
-      localStorage.setItem("currentTrack", JSON.stringify(nextTrack));
-      localStorage.setItem("currentTime", "0");
-
-      if (audioCtxRef.current?.state === "suspended") {
-        await audioCtxRef.current.resume();
+      if (!list.length || !current) {
+        setIsPlaying(false);
+        return;
       }
 
-      await loadTrackSource(nextTrack, 0);
-    } else {
-      setIsPlaying(false);
-    }
-  };
+      const index = list.findIndex(t => t.id === current.id);
+      const nextIndex = index + 1;
 
-  audio.addEventListener("timeupdate", onTime);
-  audio.addEventListener("loadedmetadata", onMeta);
-  audio.addEventListener("ended", onEnded);
+      if (nextIndex < list.length) {
+        const nextTrack = list[nextIndex];
 
-  return () => {
-    audio.removeEventListener("timeupdate", onTime);
-    audio.removeEventListener("loadedmetadata", onMeta);
-    audio.removeEventListener("ended", onEnded);
-  };
-}, [current]);
+        setCurrent(nextTrack);
+        localStorage.setItem("currentTrack", JSON.stringify(nextTrack));
+        localStorage.setItem("currentTime", "0");
 
-   // We must include 'current' so the 'ended' closure sees the right track
- // Effect re-binds when current track changes to avoid stale closures
+        if (audioCtxRef.current?.state === "suspended") {
+          await audioCtxRef.current.resume();
+        }
+
+        await loadTrackSource(nextTrack, 0);
+      } else {
+        setIsPlaying(false);
+      }
+    };
+
+    audio.addEventListener("timeupdate", onTime);
+    audio.addEventListener("loadedmetadata", onMeta);
+    audio.addEventListener("ended", onEnded);
+
+    return () => {
+      audio.removeEventListener("timeupdate", onTime);
+      audio.removeEventListener("loadedmetadata", onMeta);
+      audio.removeEventListener("ended", onEnded);
+    };
+  }, [current, volume]);
+
   /* =========================
      SAVE PROGRESS
   ========================= */
@@ -232,6 +245,12 @@ useEffect(() => {
     setIsPlaying(false);
   };
 
+  const togglePlay = async () => {
+    if (!current) return;
+    if (isPlaying) pauseTrack();
+    else await safePlay();
+  };
+
   const seek = (time) => {
     audioRef.current.currentTime = time;
     setCurrentTime(time);
@@ -239,6 +258,13 @@ useEffect(() => {
 
   const forward = () => seek(Math.min(currentTime + 10, duration));
   const backward = () => seek(Math.max(currentTime - 10, 0));
+
+  /* =========================
+     SYNC VOLUME
+  ========================= */
+  useEffect(() => {
+    audioRef.current.volume = volume;
+  }, [volume]);
 
   return (
     <AudioPlayerContext.Provider
@@ -250,11 +276,15 @@ useEffect(() => {
         duration,
         playTrack,
         pauseTrack,
+        togglePlay,
         seek,
         forward,
         backward,
         audioRef,
         analyser: analyserRef.current,
+        // ✅ Volume
+        volume,
+        setVolume,
       }}
     >
       {children}

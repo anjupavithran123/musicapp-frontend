@@ -7,7 +7,6 @@ export default function AdminUpload({ session, profile }) {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [category, setCategory] = useState("");
-  const [duration, setDuration] = useState("");
   const [uploading, setUploading] = useState(false);
 
   const userId = session?.user?.id;
@@ -20,8 +19,19 @@ export default function AdminUpload({ session, profile }) {
     );
   }
 
+  // --- Get audio duration in seconds ---
+  const getAudioDuration = (file) =>
+    new Promise((resolve, reject) => {
+      const audio = document.createElement("audio");
+      audio.src = URL.createObjectURL(file);
+      audio.addEventListener("loadedmetadata", () => {
+        resolve(Math.floor(audio.duration));
+      });
+      audio.addEventListener("error", (e) => reject(e));
+    });
+
   const handleUpload = async () => {
-    if (!title || !artist || !audioFile || !coverFile || !category || !duration) {
+    if (!title || !artist || !audioFile || !coverFile || !category) {
       alert("Please fill all fields");
       return;
     }
@@ -29,46 +39,54 @@ export default function AdminUpload({ session, profile }) {
     setUploading(true);
 
     try {
-      const durationInMinutes = (Number(duration) / 60).toFixed(1);
+      // 1️⃣ Calculate duration
+      const audioDuration = await getAudioDuration(audioFile);
 
+      // Optional: file size check (Supabase free limit 50MB)
+      if (audioFile.size > 50 * 1024 * 1024) {
+        throw new Error("Audio file exceeds 50MB limit");
+      }
+
+      // 2️⃣ Upload audio
       const audioName = `${Date.now()}_${audioFile.name}`;
-      const { data: audioData, error: audioError } =
-        await supabase.storage
-          .from("audio-files")
-          .upload(audioName, audioFile, { contentType: audioFile.type });
+      const { data: audioData, error: audioError } = await supabase.storage
+        .from("audio-files")
+        .upload(audioName, audioFile, { upsert: true, cacheControl: "3600" });
+      if (audioError) throw new Error(audioError.message);
 
-      if (audioError) throw audioError;
-
+      // 3️⃣ Upload cover
       const coverName = `${Date.now()}_${coverFile.name}`;
-      const { data: coverData, error: coverError } =
-        await supabase.storage
-          .from("cover-images")
-          .upload(coverName, coverFile, { contentType: coverFile.type });
+      const { data: coverData, error: coverError } = await supabase.storage
+        .from("cover-images")
+        .upload(coverName, coverFile, { upsert: true, cacheControl: "3600" });
+      if (coverError) throw new Error(coverError.message);
 
-      if (coverError) throw coverError;
-
+      // 4️⃣ Insert DB (duration in numeric seconds)
       const { error: dbError } = await supabase.from("tracks").insert({
         title,
         artist,
         category,
-        duration: durationInMinutes,
+        duration: audioDuration,
         audio_path: audioData.path,
         cover_path: coverData.path,
         user_id: userId,
       });
-
       if (dbError) throw dbError;
 
-      alert("✅ Upload successful");
+      alert(`✅ Upload successful! Duration: ${Math.floor(audioDuration / 60)}:${(
+        audioDuration % 60
+      )
+        .toString()
+        .padStart(2, "0")}`);
 
+      // Reset form
       setTitle("");
       setArtist("");
       setCategory("");
-      setDuration("");
       setAudioFile(null);
       setCoverFile(null);
     } catch (err) {
-      console.error(err);
+      console.error("Upload error:", err);
       alert("❌ Upload failed: " + err.message);
     } finally {
       setUploading(false);
@@ -111,14 +129,6 @@ export default function AdminUpload({ session, profile }) {
             <option value="Popular">Popular</option>
             <option value="Classical">Classical</option>
           </select>
-
-          <input
-            type="number"
-            placeholder="Duration in seconds"
-            className="w-full rounded-xl bg-gray-100 p-4 text-gray-800 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-200 transition"
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-          />
 
           <input
             type="file"
