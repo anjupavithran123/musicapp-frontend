@@ -31,7 +31,7 @@ export default function Home() {
 
           <div className="flex gap-6">
             <a
-              href="#features"
+              href="/login"
               className="px-10 py-4 bg-white text-purple-700 rounded-full font-bold shadow-xl hover:scale-110 transition"
             >
               Start Listening
